@@ -1,6 +1,6 @@
 {
-  "name": "agent-telemetry",
-  "version": "0.1.0",
+  "name": "telm0x",
+  "version": "0.2.0",
   "description": "Two-line observability for AI agents. Track costs, tokens, and latency across OpenAI, Anthropic, and OpenRouter.",
   "type": "module",
   "main": "index.js",
@@ -11,6 +11,7 @@
     "url": "https://github.com/sandrosaric/sbtelemetry.git"
   },
   "keywords": [
+    "telm0x",
     "telemetry",
     "llm",
     "openai",

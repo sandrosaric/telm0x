@@ -1,4 +1,4 @@
-const ENDPOINT = 'https://sandrobuilds.com/api/v1/agent-telemetry/ingest';
+const ENDPOINT = 'https://sandrobuilds.com/api/v1/telm0x/ingest';
 
 function isAsyncGenerator(obj) {
   return obj && typeof obj === 'object' && typeof obj[Symbol.asyncIterator] === 'function';

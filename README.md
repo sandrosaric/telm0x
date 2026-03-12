@@ -1,12 +1,12 @@
-# sbtelemetry
+# telm0x
 
 Two-line observability for AI agents. Track costs, tokens, latency, and reasoning across OpenAI, Anthropic, and OpenRouter.
 
 ```
-npm install github:sandrobuilds/agent-telemetry
+npm install github:sandrosaric/sbtelemetry
 ```
 
-## Why AgentTelemetry?
+## Why telm0x?
 
 Every AI agent developer has the same problem: **you don't know how much your agent is costing you.**
 
@@ -16,13 +16,13 @@ Every AI agent developer has the same problem: **you don't know how much your ag
 
 **You need to see the real cost, not just the API logs.**
 
-AgentTelemetry gives you a dashboard in 2 lines of code.
+telm0x gives you a dashboard in 2 lines of code.
 
 ## Quick Start
 
 ```javascript
 import OpenAI from 'openai';
-import { wrapClient } from 'agent-telemetry';
+import { wrapClient } from 'sbtelemetry';
 
 const client = wrapClient(new OpenAI({ apiKey: process.env.OPENAI_API_KEY }), 'YOUR_API_KEY');
 
@@ -33,13 +33,13 @@ const response = await client.chat.completions.create({
 });
 ```
 
-Get your free API key at: **sandrobuilds.com/tools/agent-telemetry**
+Get your free API key at: **sandrobuilds.com/tools/telm0x**
 
 ## Features
 
 ### Multi-Provider Support
-- OpenAI (GPT-4o, GPT-4o-mini, GPT-5)
-- Anthropic (Claude 4, Claude 3.5)
+- OpenAI (GPT-5, GPT-4o, GPT-4o-mini)
+- Anthropic (Claude 4.6, Claude 3.5)
 - OpenRouter (any model)
 
 ### Streaming Support
@@ -91,7 +91,7 @@ Wraps an OpenAI/Anthropic client to automatically track usage.
 
 **Parameters:**
 - `client` - OpenAI or compatible client instance
-- `apiKey` - Your AgentTelemetry API key (get at sandrobuilds.com/tools/agent-telemetry)
+- `apiKey` - Your telm0x API key (get at sandrobuilds.com/tools/telm0x)
 - `options` - Optional configuration
   - `endpoint` - Custom ingestion endpoint
   - `agentName` - Name for this agent (for labeling in dashboard)
@@ -103,7 +103,7 @@ Wraps an OpenAI/Anthropic client to automatically track usage.
 Manual tracking function.
 
 ```javascript
-import { trackUsage } from 'agent-telemetry';
+import { trackUsage } from 'sbtelemetry';
 
 await trackUsage('YOUR_KEY', {
   model: 'gpt-4o',
@@ -119,7 +119,7 @@ await trackUsage('YOUR_KEY', {
 Create a tracker instance for repeated use.
 
 ```javascript
-import { createTracker } from 'agent-telemetry';
+import { createTracker } from 'sbtelemetry';
 
 const tracker = createTracker('YOUR_KEY', { agentName: 'my-agent' });
 
@@ -133,7 +133,7 @@ tracker.track({
 
 ## Dashboard
 
-Your dashboard is live at: **sandrobuilds.com/tools/agent-telemetry**
+Your dashboard is live at: **sandrobuilds.com/tools/telm0x**
 
 ### What it shows:
 
@@ -146,11 +146,17 @@ Your dashboard is live at: **sandrobuilds.com/tools/agent-telemetry**
 | 🧠 Reasoning Tokens | Thinking tokens (from Claude 4, GPT-5) |
 | Agent Sessions | Multi-call sessions grouped by sessionId |
 
+## Rate Limiting
+
+- **Free tier:** 100 requests/minute per API key
+- Responses include `rateLimit.remaining` for quota tracking
+- Returns 429 when limit exceeded
+
 ## Anonymous Mode
 
 No signup required. 
 
-1. Visit **sandrobuilds.com/tools/agent-telemetry**
+1. Visit **sandrobuilds.com/tools/telm0x**
 2. Copy your auto-generated API key
 3. Start tracking
 
