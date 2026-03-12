@@ -93,7 +93,9 @@ function calculateCost(model, inputTokens, outputTokens) {
 }
 
 export function wrapClient(client, atApiKey, options = {}) {
-  const originalRequest = client.request?.bind(client) || client.chat?.completions?.create?.bind(client.chat.completions);
+  const originalRequest = client.request?.bind(client) 
+    || client.chat?.completions?.create?.bind(client.chat.completions)
+    || client.chat?.send?.bind(client.chat);
   const baseEndpoint = options.endpoint || ENDPOINT;
   const agentName = options.agentName;
 
