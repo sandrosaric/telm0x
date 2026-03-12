@@ -8,7 +8,7 @@ npm install telm0x
 
 Or install from GitHub:
 ```
-npm install github:sandrosaric/sbtelemetry
+npm install github:sandrosaric/telm0x
 ```
 
 ## Why telm0x?
