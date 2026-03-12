@@ -3,6 +3,11 @@
 Two-line observability for AI agents. Track costs, tokens, latency, and reasoning across OpenAI, Anthropic, and OpenRouter.
 
 ```
+npm install telm0x
+```
+
+Or install from GitHub:
+```
 npm install github:sandrosaric/sbtelemetry
 ```
 
