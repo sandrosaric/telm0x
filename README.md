@@ -1,4 +1,4 @@
-# AgentTelemetry
+# sbtelemetry
 
 Two-line observability for AI agents. Track costs, tokens, latency, and reasoning across OpenAI, Anthropic, and OpenRouter.
 
