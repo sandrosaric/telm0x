@@ -30,20 +30,52 @@ function calculateCost(model, inputTokens, outputTokens) {
     'claude-3-opus': { input: 15.00, output: 75.00 },
     'claude-3-sonnet': { input: 3.00, output: 15.00 },
     'claude-3-haiku': { input: 0.25, output: 1.25 },
+    // Gemini 3 Family
+    'gemini-3.1-pro': { input: 2.00, output: 12.00 },
+    'gemini-3-pro': { input: 0.50, output: 3.00 },
+    'gemini-3-flash': { input: 0.50, output: 3.00 },
+    // Gemini 2.5 Family
+    'gemini-2.5-pro': { input: 1.25, output: 10.00 },
+    'gemini-2.5-flash': { input: 0.30, output: 2.50 },
+    'gemini-2.5-flash-lite': { input: 0.10, output: 0.40 },
+    // Gemini 2 Family (legacy)
+    'gemini-2.0-flash-exp': { input: 0.00, output: 0.00 },
+    // Gemini 1.5 Family
+    'gemini-1.5-pro': { input: 1.25, output: 5.00 },
+    'gemini-1.5-flash': { input: 0.075, output: 0.30 },
+    'gemini-1.5-flash-8b': { input: 0.0375, output: 0.15 },
   };
 
   const lower = model.toLowerCase();
   let key = 'gpt-4o-mini';
   
-  if (lower.includes('gpt-5-pro')) key = 'gpt-5-pro';
+  // Gemini 3
+  if (lower.includes('gemini-3.1-pro')) key = 'gemini-3.1-pro';
+  else if (lower.includes('gemini-3-pro')) key = 'gemini-3-pro';
+  else if (lower.includes('gemini-3-flash')) key = 'gemini-3-flash';
+  // Gemini 2.5
+  else if (lower.includes('gemini-2.5-pro')) key = 'gemini-2.5-pro';
+  else if (lower.includes('gemini-2.5-flash-lite')) key = 'gemini-2.5-flash-lite';
+  else if (lower.includes('gemini-2.5-flash')) key = 'gemini-2.5-flash';
+  // Gemini 2
+  else if (lower.includes('gemini-2')) key = 'gemini-2.0-flash-exp';
+  // Gemini 1.5
+  else if (lower.includes('gemini-1.5-pro')) key = 'gemini-1.5-pro';
+  else if (lower.includes('gemini-1.5-flash-8b')) key = 'gemini-1.5-flash-8b';
+  else if (lower.includes('gemini-1.5-flash')) key = 'gemini-1.5-flash';
+  else if (lower.includes('gemini-1')) key = 'gemini-1.5-flash';
+  // GPT-5
+  else if (lower.includes('gpt-5-pro')) key = 'gpt-5-pro';
   else if (lower.includes('gpt-5-mini')) key = 'gpt-5-mini';
   else if (lower.includes('gpt-5.3') || lower.includes('gpt-5-3')) key = 'gpt-5.3';
   else if (lower.includes('gpt-5')) key = 'gpt-5';
+  // GPT-4
   else if (lower.includes('gpt-4o-mini')) key = 'gpt-4o-mini';
   else if (lower.includes('gpt-4o')) key = 'gpt-4o';
   else if (lower.includes('gpt-4-turbo')) key = 'gpt-4-turbo';
   else if (lower.includes('gpt-4') && !lower.includes('turbo') && !lower.includes('4o')) key = 'gpt-4';
   else if (lower.includes('gpt-3.5')) key = 'gpt-3.5-turbo';
+  // Claude
   else if (lower.includes('claude-opus-4.6')) key = 'claude-opus-4.6';
   else if (lower.includes('claude-opus-4')) key = 'claude-opus-4';
   else if (lower.includes('claude-opus')) key = 'claude-3-opus';
