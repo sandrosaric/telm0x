@@ -1,4 +1,4 @@
-const ENDPOINT = 'https://sandrobuilds.com/api/v1/telm0x/ingest';
+const ENDPOINT = 'https://sandro-builds.vercel.app/api/v1/telm0x/ingest';
 
 function isAsyncGenerator(obj) {
   return obj && typeof obj === 'object' && typeof obj[Symbol.asyncIterator] === 'function';
@@ -93,108 +93,140 @@ function calculateCost(model, inputTokens, outputTokens) {
 }
 
 export function wrapClient(client, atApiKey, options = {}) {
-  const originalRequest = client.request?.bind(client) 
-    || client.chat?.completions?.create?.bind(client.chat.completions)
-    || client.chat?.send?.bind(client.chat);
   const baseEndpoint = options.endpoint || ENDPOINT;
   const agentName = options.agentName;
 
-  if (!originalRequest) {
-    console.warn('agent-telemetry: Could not find request method to wrap');
-    return client;
-  }
+  // Helper to create wrapped request function
+  const wrapRequestFn = (originalFn, fnName) => {
+    return async function(params) {
+      const start = Date.now();
+      const isStreaming = params?.stream ?? params?.body?.stream ?? false;
+      const sessionId = params?.sessionId || params?.body?.session_id || params?.metadata?.sessionId;
+      const callMetadata = params?.metadata || {};
+      const modelName = params?.body?.model || params?.model;
 
-  client.request = async function(params) {
-    const start = Date.now();
-    const isStreaming = params?.stream || params?.body?.stream;
-    const sessionId = params?.sessionId || params?.body?.session_id || params?.metadata?.sessionId;
-    const callMetadata = params?.metadata || {};
-
-    let response;
-    try {
-      response = await originalRequest(params);
-    } catch (e) {
-      throw e;
-    }
-
-    if (isStreaming && response && isAsyncGenerator(response)) {
-      let totalInputTokens = 0;
-      let totalOutputTokens = 0;
-      let totalReasoningTokens = 0;
-      let modelName = params?.body?.model || params?.model;
-      let providerName = 'openai';
-
-      return (async function*() {
-        for await (const chunk of response) {
-          if (chunk.usage) {
-            totalInputTokens = chunk.usage.prompt_tokens || chunk.usage.input_tokens || 0;
-            totalOutputTokens = chunk.usage.completion_tokens || chunk.usage.output_tokens || 0;
-            totalReasoningTokens = chunk.usage.reasoning_tokens || 0;
-            modelName = chunk.model || modelName;
-            providerName = chunk.provider || providerName;
-
-            const end = Date.now();
-            const cost = calculateCost(modelName, totalInputTokens, totalOutputTokens);
-
-            fetch(baseEndpoint, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                apiKey: atApiKey,
-                model: modelName,
-                provider: providerName,
-                inputTokens: totalInputTokens,
-                outputTokens: totalOutputTokens,
-                reasoningTokens: totalReasoningTokens,
-                totalTokens: totalInputTokens + totalOutputTokens,
-                latencyMs: end - start,
-                cost,
-                agentName,
-                sessionId,
-                metadata: { ...callMetadata, stream: true }
-              })
-            }).catch(() => {});
-          }
-          yield chunk;
-        }
-      })();
-    }
-
-    if (!isStreaming && response) {
-      const end = Date.now();
-      const usage = response.usage || {};
-      const inputTokens = usage.prompt_tokens || usage.input_tokens || 0;
-      const outputTokens = usage.completion_tokens || usage.output_tokens || 0;
-      const reasoningTokens = usage.reasoning_tokens || 0;
-      const model = response.model || params?.body?.model;
-      const provider = response.provider || 'openai';
-
-      if (model) {
-        const cost = calculateCost(model, inputTokens, outputTokens);
-
-        fetch(baseEndpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            apiKey: atApiKey,
-            model,
-            provider,
-            inputTokens,
-            outputTokens,
-            reasoningTokens,
-            totalTokens: inputTokens + outputTokens,
-            latencyMs: end - start,
-            cost,
-            agentName,
-            sessionId,
-            metadata: callMetadata
-          })
-        }).catch(() => {});
+      let response;
+      try {
+        response = await originalFn(params);
+      } catch (e) {
+        throw e;
       }
-    }
 
-    return response;
+      // Handle streaming responses
+      if (isStreaming && response && isAsyncGenerator(response)) {
+        let fullContent = '';
+        let finalUsage = null;
+        let finalModel = modelName;
+        let providerName = 'openai';
+        let telemetrySent = false;
+
+        return (async function*() {
+          for await (const chunk of response) {
+            if (chunk.choices?.[0]?.delta?.content) {
+              fullContent += chunk.choices[0].delta.content;
+            }
+            
+            // Try to get usage from final chunk
+            if (chunk.usage) {
+              finalUsage = chunk.usage;
+              finalModel = chunk.model || finalModel;
+              providerName = chunk.provider || providerName;
+            }
+            
+            // Check for finish reason - only send once
+            if (!telemetrySent && (chunk.choices?.[0]?.finishReason || chunk.choices?.[0]?.finish_reason)) {
+              telemetrySent = true;
+              const end = Date.now();
+              
+              const inputTokens = finalUsage?.prompt_tokens || finalUsage?.input_tokens || 0;
+              const outputTokens = finalUsage?.completion_tokens || finalUsage?.output_tokens || 0;
+              const reasoningTokens = finalUsage?.reasoning_tokens || 0;
+              
+              // If no usage in stream, estimate based on content length
+              const estimatedInputTokens = inputTokens || Math.ceil(fullContent.length / 4);
+              const estimatedOutputTokens = outputTokens || Math.ceil(fullContent.length / 4);
+              
+              const cost = calculateCost(finalModel, estimatedInputTokens, estimatedOutputTokens);
+              
+              try {
+                const res = await fetch(baseEndpoint, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    apiKey: atApiKey,
+                    model: finalModel,
+                    provider: providerName,
+                    inputTokens: estimatedInputTokens,
+                    outputTokens: estimatedOutputTokens,
+                    reasoningTokens,
+                    totalTokens: estimatedInputTokens + estimatedOutputTokens,
+                    latencyMs: end - start,
+                    cost,
+                    agentName,
+                    sessionId,
+                    metadata: { ...callMetadata, stream: true, estimated: !finalUsage }
+                  })
+                });
+              } catch (err) {
+                // Silent failure - telemetry should never break the app
+              }
+            }
+
+            yield chunk;
+          }
+        })();
+      }
+
+      // Handle non-streaming responses
+      if (response) {
+        const end = Date.now();
+        const usage = response.usage || {};
+        const inputTokens = usage.prompt_tokens || usage.input_tokens || 0;
+        const outputTokens = usage.completion_tokens || usage.output_tokens || 0;
+        const reasoningTokens = usage.reasoning_tokens || 0;
+        const model = response.model || modelName;
+        const provider = response.provider || 'openai';
+
+        if (model) {
+          const cost = calculateCost(model, inputTokens, outputTokens);
+
+          fetch(baseEndpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              apiKey: atApiKey,
+              model,
+              provider,
+              inputTokens,
+              outputTokens,
+              reasoningTokens,
+              totalTokens: inputTokens + outputTokens,
+              latencyMs: end - start,
+              cost,
+              agentName,
+              sessionId,
+              metadata: callMetadata
+            })
+          }).catch(() => {});
+        }
+      }
+
+      return response;
+    };
   };
+
+  // Try to wrap different method paths
+  if (client.request) {
+    client.request = wrapRequestFn(client.request.bind(client), 'request');
+  }
+  
+  if (client.chat?.send) {
+    client.chat.send = wrapRequestFn(client.chat.send.bind(client.chat), 'chat.send');
+  }
+  
+  if (client.chat?.completions?.create) {
+    client.chat.completions.create = wrapRequestFn(client.chat.completions.create.bind(client.chat.completions), 'chat.completions.create');
+  }
 
   return client;
 }

@@ -1,7 +1,7 @@
 {
   "name": "telm0x",
-  "version": "0.2.3",
-  "description": "Two-line observability for AI agents. Track costs, tokens, and latency across OpenAI, Anthropic, and OpenRouter.",
+  "version": "0.1.0",
+  "description": "Quiet observability for OpenRouter agents. Track costs, tokens, and latency with a two-line wrapper.",
   "type": "module",
   "main": "index.js",
   "author": "Sandro <sandro@sandrobuilds.com>",
